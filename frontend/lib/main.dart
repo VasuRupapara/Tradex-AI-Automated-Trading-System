@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -485,6 +486,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+        IconButton(
+          icon: const Icon(Icons.settings, color: Colors.grey, size: 20),
+          onPressed: () {
+            Navigator.push(context, MaterialPageRoute(builder: (ctx) => const SettingsScreen()));
+          },
+        ),
       ],
     );
   }
@@ -940,6 +947,308 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Settings Screen
+// ---------------------------------------------------------------------------
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final Map<String, TextEditingController> _controllers = {};
+  List<String> _envLines = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEnv();
+  }
+
+  void _loadEnv() {
+    try {
+      final file = File('../.env');
+      if (file.existsSync()) {
+        _envLines = file.readAsLinesSync();
+        for (var line in _envLines) {
+          line = line.trim();
+          if (line.isNotEmpty && !line.startsWith('#') && line.contains('=')) {
+            final idx = line.indexOf('=');
+            final key = line.substring(0, idx).trim();
+            final value = line.substring(idx + 1).trim();
+            _controllers[key] = TextEditingController(text: value);
+          }
+        }
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('Error loading .env: $e');
+    }
+  }
+
+  void _saveEnv() {
+    try {
+      final file = File('../.env');
+      List<String> newLines = [];
+      for (var line in _envLines) {
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty && !trimmed.startsWith('#') && trimmed.contains('=')) {
+          final idx = trimmed.indexOf('=');
+          final key = trimmed.substring(0, idx).trim();
+          if (_controllers.containsKey(key)) {
+            newLines.add('$key=${_controllers[key]!.text}');
+            continue;
+          }
+        }
+        newLines.add(line);
+      }
+      file.writeAsStringSync(newLines.join('\n'));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Settings saved successfully! Restart backend to apply.', style: TextStyle(color: Colors.white))),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving: $e', style: const TextStyle(color: Colors.redAccent))),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Widget _buildTextField(String key) {
+    if (!_controllers.containsKey(key)) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: TextField(
+        controller: _controllers[key],
+        style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+        decoration: InputDecoration(
+          labelText: key,
+          labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Colors.orange),
+          ),
+          filled: true,
+          fillColor: const Color(0xFF1A1A1A),
+          isDense: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(String key, List<String> options) {
+    if (!_controllers.containsKey(key)) return const SizedBox.shrink();
+    String currentValue = _controllers[key]!.text.trim();
+    if (!options.contains(currentValue)) {
+      if (options.isNotEmpty) currentValue = options.first;
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: DropdownButtonFormField<String>(
+        value: currentValue,
+        dropdownColor: const Color(0xFF1A1A1A),
+        style: const TextStyle(fontSize: 13, fontFamily: 'monospace', color: Colors.white),
+        decoration: InputDecoration(
+          labelText: key,
+          labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Color(0xFF333333)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: const BorderSide(color: Colors.orange),
+          ),
+          filled: true,
+          fillColor: const Color(0xFF1A1A1A),
+          isDense: true,
+        ),
+        items: options.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        onChanged: (val) {
+          if (val != null) {
+            _controllers[key]!.text = val;
+            setState(() {});
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, List<Widget> children) {
+    // If all children are SizedBox.shrink, don't show the card
+    bool hasContent = children.any((widget) => widget is! SizedBox);
+    if (!hasContent) return const SizedBox.shrink();
+
+    return Card(
+      color: const Color(0xFF121212),
+      margin: const EdgeInsets.only(bottom: 20.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: Color(0xFF333333), width: 1),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.tune, size: 16, color: Colors.orangeAccent),
+                const SizedBox(width: 8),
+                Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.orangeAccent,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const Divider(color: Color(0xFF333333), height: 24),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tradex AI Configuration', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF1E1E1E),
+        elevation: 0,
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.save, color: Colors.white, size: 16),
+            label: const Text('Save Settings'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+            onPressed: _saveEnv,
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
+      body: _controllers.isEmpty
+          ? const Center(child: Text('No settings found in .env', style: TextStyle(color: Colors.grey)))
+          : ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                _buildSection('Broker Selection', [
+                  _buildDropdownField('BROKER_NAME', ['angel_one', 'zerodha', 'fyers', 'upstox', 'dhan', 'groww']),
+                  _buildDropdownField('TRADING_MODE', ['paper', 'live']),
+                ]),
+                _buildSection('Angel One API', [
+                  _buildTextField('ANGEL_API_KEY'),
+                  _buildTextField('ANGEL_CLIENT_ID'),
+                  _buildTextField('ANGEL_PASSWORD'),
+                  _buildTextField('ANGEL_TOTP_SECRET'),
+                ]),
+                _buildSection('Zerodha Kite Connect', [
+                  _buildTextField('ZERODHA_API_KEY'),
+                  _buildTextField('ZERODHA_API_SECRET'),
+                  _buildTextField('ZERODHA_ACCESS_TOKEN'),
+                  _buildTextField('ZERODHA_USER_ID'),
+                ]),
+                _buildSection('Fyers API v3', [
+                  _buildTextField('FYERS_APP_ID'),
+                  _buildTextField('FYERS_SECRET_KEY'),
+                  _buildTextField('FYERS_ACCESS_TOKEN'),
+                  _buildTextField('FYERS_REDIRECT_URL'),
+                ]),
+                _buildSection('Upstox API v2', [
+                  _buildTextField('UPSTOX_API_KEY'),
+                  _buildTextField('UPSTOX_API_SECRET'),
+                  _buildTextField('UPSTOX_ACCESS_TOKEN'),
+                  _buildTextField('UPSTOX_REDIRECT_URI'),
+                ]),
+                _buildSection('Dhan HQ', [
+                  _buildTextField('DHAN_CLIENT_ID'),
+                  _buildTextField('DHAN_ACCESS_TOKEN'),
+                ]),
+                _buildSection('Groww Trading API', [
+                  _buildTextField('GROWW_API_KEY'),
+                  _buildTextField('GROWW_API_SECRET'),
+                  _buildTextField('GROWW_ACCESS_TOKEN'),
+                ]),
+                _buildSection('Trading Capital Allocation', [
+                  _buildTextField('TOTAL_CAPITAL'),
+                  _buildTextField('EQUITY_CAPITAL_PERCENT'),
+                  _buildTextField('FNO_CAPITAL_PERCENT'),
+                  _buildTextField('CRYPTO_CAPITAL_PERCENT'),
+                ]),
+                _buildSection('Monthly Report Email Settings', [
+                  _buildTextField('SENDER_EMAIL'),
+                  _buildTextField('SENDER_PASSWORD'),
+                  _buildTextField('RECEIVER_EMAIL'),
+                ]),
+                _buildSection('Risk Management', [
+                  _buildTextField('MAX_POSITION_SIZE'),
+                  _buildTextField('MAX_DRAWDOWN_PERCENT'),
+                  _buildTextField('MAX_DAILY_LOSS'),
+                  _buildTextField('MAX_ORDER_FREQUENCY_PER_SECOND'),
+                  _buildDropdownField('KILL_SWITCH_ENABLED', ['true', 'false']),
+                  _buildTextField('INTRADAY_SQUARE_OFF_TIME'),
+                ]),
+                _buildSection('Watchlist', [
+                  _buildTextField('EQUITY_SYMBOLS'),
+                  _buildTextField('FNO_SYMBOLS'),
+                  _buildTextField('CRYPTO_SYMBOLS'),
+                ]),
+                _buildSection('Redis', [
+                  _buildTextField('REDIS_HOST'),
+                  _buildTextField('REDIS_PORT'),
+                  _buildTextField('REDIS_DB'),
+                ]),
+                _buildSection('System & Infrastructure', [
+                  _buildDropdownField('ENVIRONMENT', ['production', 'development']),
+                  _buildDropdownField('LOG_LEVEL', ['DEBUG', 'INFO', 'WARNING', 'ERROR']),
+                  _buildDropdownField('DEBUG', ['true', 'false']),
+                  _buildTextField('API_GATEWAY_HOST'),
+                  _buildTextField('API_GATEWAY_PORT'),
+                  _buildTextField('API_SECRET_KEY'),
+                  _buildTextField('QUESTDB_HOST'),
+                  _buildTextField('QUESTDB_PORT'),
+                  _buildTextField('QUESTDB_HTTP_PORT'),
+                  _buildTextField('QUESTDB_USER'),
+                  _buildTextField('QUESTDB_PASSWORD'),
+                ]),
+              ],
+            ),
     );
   }
 }
