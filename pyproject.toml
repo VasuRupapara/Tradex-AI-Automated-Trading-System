@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[project]
+name = "automated-trading-system"
+version = "1.0.0"
+description = "Institutional-grade cross-platform automated trading system"
+requires-python = ">=3.11"

@@ -1,0 +1,81 @@
+# ============================================
+# Automated Trading System - Python Dependencies
+# ============================================
+
+# --- Core Framework ---
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# --- gRPC & Protobuf ---
+grpcio>=1.60.0
+grpcio-tools>=1.60.0
+protobuf>=4.25.0
+
+# --- WebSockets ---
+python-socketio>=5.10.0
+
+# --- Database (QuestDB) ---
+psycopg2-binary>=2.9.9
+questdb>=1.1.0
+sqlalchemy>=2.0.23
+
+# --- Data Processing ---
+pandas>=2.1.0
+numpy>=1.26.0
+
+# --- Async & Event Loop ---
+asyncio-mqtt>=0.16.0
+aiohttp>=3.9.0
+aiokafka>=0.10.0
+
+# --- Broker APIs ---
+alpaca-py>=0.21.0
+
+# --- Indian Broker APIs ---
+smartapi-python>=1.3.0       # Angel One SmartAPI
+pyotp>=2.9.0                 # TOTP for Angel One auth
+# kiteconnect>=5.0.0         # Zerodha (uncomment if using)
+# fyers-apiv3>=3.0.0         # Fyers (uncomment if using)
+# dhanhq>=2.0.0              # Dhan (uncomment if using)
+pytz>=2024.1                 # IST timezone support
+
+# --- Technical Analysis ---
+ta-lib>=0.4.28
+pandas-ta>=0.3.14
+
+# --- Risk & Math ---
+scipy>=1.11.0
+statsmodels>=0.14.0
+
+# --- Monitoring & Telemetry ---
+prometheus-client>=0.19.0
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+
+# --- Security ---
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# --- Configuration ---
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+
+# --- Testing ---
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-cov>=4.1.0
+httpx>=0.25.0
+
+# --- Logging ---
+structlog>=23.2.0
+rich>=13.7.0
+
+# --- Utilities ---
+click>=8.1.0
+schedule>=1.2.0
+
+# --- PDF Generation ---
+reportlab>=4.0.0

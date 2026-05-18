@@ -1,0 +1,69 @@
+# Automated Trading System Folder Structure
+
+Automated-Trading-System/
+├── 🌍 backend/                    # Backend Microservices (Microservices Topology)
+│   ├── 🛰️ api-gateway/            # Unified entry point (gRPC/WebSockets)
+│   │   ├── src/
+│   │   └── proto/                 # Protobuf definitions for service-to-service comms
+│   ├── 📈 market-data/            # High-velocity ingestion engine (QuestDB Integration)
+│   │   ├── adapters/              # Connectors for Alpaca, IBKR, etc.
+│   │   └── services/              # Ingestion logic and QuestDB writers
+│   ├── 🧠 strategy-engine/        # Core execution loop (Event-Driven)
+│   │   ├── strategies/            # Quantitative logic (Alpha research)
+│   │   └── engine/                # Main event loop (MarketData -> Signal -> Order)
+│   ├── 🛡️ risk-management/        # Institutional-grade risk firewall
+│   │   ├── limits/                # Pre-trade, position, and monetary limits
+│   │   └── controls/              # Drawdown controls and Global Kill Switch logic
+│   └── ⚡ execution-handler/       # Order routing and broker adapters
+│       ├── routing/               # Smart order routing logic
+│       └── brokers/               # Standardized adapter pattern for various brokers
+├── 📱 frontend/                   # Cross-Platform Application (Flutter)
+│   ├── lib/
+│   │   ├── 🔄 bloc/               # State management for high-frequency data
+│   │   ├── 📊 charts/             # GPU-accelerated charting (Cristalyse/Custom)
+│   │   ├── 🛠️ services/           # WebSocket and gRPC clients
+│   │   └── 🎨 ui/                 # Responsive views for Desktop & Mobile
+│   └── pubspec.yaml
+├── 🏗️ infrastructure/             # DevOps and Observability (Institutional Resilience)
+│   ├── 🐳 docker/                 # Service-specific Dockerfiles
+│   ├── ☸️ k8s/                    # Kubernetes manifests for scaling
+│   ├── 📊 prometheus/             # Telemetry scraping configuration
+│   └── 📈 grafana/                # Dashboards for P&L and system health
+├── 💾 database/                   # QuestDB Setup and Migrations
+│   ├── scripts/                   # Schema definitions for tick/bar data
+│   └── config/                    # QuestDB performance tuning
+├── 📑 docs/                       # Blueprints and System Designs
+│   ├── BluePrint/                 # Original design documents
+│   └── architecture/              # Detailed diagrams and logic flows
+└── 📜 scripts/                    # Research and Automation scripts
+    └── research/                  # Jupyter notebooks for alpha research
+
+
+# Technologies
+
+### 1. 📱 Frontend (Desktop & Mobile)
+*   **Dart**: Used with the **Flutter** framework. It is the primary language for building the user interface, handling the 60fps charting (via Cristalyse), and managing application state through the BLoC pattern.
+
+### 2. 🧠 Backend & Trading Logic
+*   **Python**: Recommended for **Strategy Development** and used by the **Hummingbot** framework. It is the industry standard for quantitative research and alpha generation due to libraries like Pandas and NumPy.
+*   **C# (.NET)**: The native language of the **LEAN** engine (QuantConnect). It handles the high-performance core execution, accounting, and backtesting kernel.
+*   **TypeScript**: Used specifically for the **Gateway DEX Middleware** (in the Hummingbot ecosystem) to standardize interactions across disparate blockchain networks.
+*   **F#**: Mentioned as a supported functional language for authoring strategies within the LEAN framework.
+
+### 3. 💾 Data & Infrastructure
+*   **SQL**: Used for querying high-frequency tick data within **QuestDB**. The blueprint specifically highlights QuestDB's specialized SQL syntax (like `LATEST ON`) for low-latency lookups.
+*   **q**: Mentioned as the highly specialized language for **kdb+**, though the blueprint favors QuestDB for modern, open-source deployments.
+*   **Protobuf (Protocol Buffers)**: While not a programming language per se, it is the IDL (Interface Description Language) used for **gRPC** communication between the microservices.
+*   **YAML / Shell**: For Docker configurations, Kubernetes manifests, and automation scripts.
+
+### 🔄 Language Summary by Role
+__________________________________________________________
+| Role                            | Recommended Language |
+|_________________________________|______________________|
+| **User Interface**              | Dart (Flutter)       |
+| **Backtesting & Core Engine**   | C# (.NET)            |
+| **Alpha Strategies / Research** | Python               |
+| **Blockchain Middleware**       | TypeScript           |
+| **High-Freq Data Queries**      | SQL (QuestDB)        |
+| **Service Communication**       | Protobuf (gRPC)      |
+__________________________________________________________

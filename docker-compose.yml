@@ -1,0 +1,81 @@
+# ============================================
+# Automated Trading System - Docker Compose
+# Local Development Environment
+# ============================================
+# Starts all infrastructure services:
+#   - QuestDB (Time-Series Database)
+#   - Prometheus (Metrics Scraping)
+#   - Grafana (Dashboard Visualization)
+
+version: "3.9"
+
+services:
+  # ------------------------------------------
+  # QuestDB - Time-Series Database
+  # High-velocity ingestion (11M+ rows/sec)
+  # LATEST ON syntax for 1.56ms last-tick lookups
+  # ------------------------------------------
+  questdb:
+    image: questdb/questdb:latest
+    container_name: ats-questdb
+    ports:
+      - "9000:9000"   # HTTP Console & REST API
+      - "8812:8812"   # PostgreSQL Wire Protocol
+      - "9009:9009"   # Influx Line Protocol (ILP)
+    volumes:
+      - questdb-data:/var/lib/questdb
+    environment:
+      - QDB_TELEMETRY_ENABLED=false
+    restart: unless-stopped
+
+  # ------------------------------------------
+  # Prometheus - Metrics Scraping
+  # Scrapes system & application metrics
+  # ------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ats-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+    restart: unless-stopped
+
+  # ------------------------------------------
+  # Grafana - Dashboard Visualization
+  # P&L, system health, and telemetry dashboards
+  # ------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ats-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infrastructure/grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # ------------------------------------------
+  # Redis - Optional Caching Layer
+  # ------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ats-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+volumes:
+  questdb-data:
+  prometheus-data:
+  grafana-data:
