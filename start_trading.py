@@ -87,13 +87,23 @@ class IndianTradingEngine:
         # F&O strategy (on index symbols)
         self.strategy_engine.register(NiftyIntradayStrategy(
             symbols=self.fno_symbols,
-            params={"breakout_window": 30},
+            params={"breakout_window": 30},  # Reverted to 30 for safe, real-world breakout logic
         ))
 
         # Smart Money Concepts strategy (on equity symbols)
         self.strategy_engine.register(SmartMoneyStrategy(
             symbols=self.equity_symbols,
             params={"swing_length": 50, "internal_length": 5, "min_signal_strength": 0.3},
+        ))
+
+        # Crypto strategy (using Momentum)
+        self.strategy_engine.register(EquityMomentumStrategy(
+            symbols=self.crypto_symbols,
+            params={"rsi_period": 14, "ema_short": 9, "ema_long": 21},
+        ))
+        self.strategy_engine.register(SmartMoneyStrategy(
+            symbols=self.crypto_symbols,
+            params={"swing_length": 20, "internal_length": 5, "min_signal_strength": 0.3},
         ))
 
         # 4. Risk manager

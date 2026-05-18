@@ -79,46 +79,20 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Indian equity watchlist + F&O + Crypto
-  Map<String, WatchlistEntry> watchlist = {
-    'RELIANCE': WatchlistEntry(symbol: 'RELIANCE', price: 2850.0),
-    'TCS': WatchlistEntry(symbol: 'TCS', price: 3920.0),
-    'HDFCBANK': WatchlistEntry(symbol: 'HDFCBANK', price: 1620.0),
-    'INFY': WatchlistEntry(symbol: 'INFY', price: 1540.0),
-    'ICICIBANK': WatchlistEntry(symbol: 'ICICIBANK', price: 1280.0),
-    'SBIN': WatchlistEntry(symbol: 'SBIN', price: 820.0),
-    'BHARTIARTL': WatchlistEntry(symbol: 'BHARTIARTL', price: 1680.0),
-    'ITC': WatchlistEntry(symbol: 'ITC', price: 435.0),
-    'HINDUNILVR': WatchlistEntry(symbol: 'HINDUNILVR', price: 2380.0),
-    'KOTAKBANK': WatchlistEntry(symbol: 'KOTAKBANK', price: 1920.0),
-    // F&O Indices
-    'NIFTY': WatchlistEntry(symbol: 'NIFTY', price: 24200.0),
-    'BANKNIFTY': WatchlistEntry(symbol: 'BANKNIFTY', price: 52100.0),
-    'FINNIFTY': WatchlistEntry(symbol: 'FINNIFTY', price: 23800.0),
-    // Crypto (USDT pairs)
-    'BTCUSDT': WatchlistEntry(symbol: 'BTCUSDT', price: 104500.0),
-    'ETHUSDT': WatchlistEntry(symbol: 'ETHUSDT', price: 2550.0),
-    'SOLUSDT': WatchlistEntry(symbol: 'SOLUSDT', price: 172.0),
-    'XRPUSDT': WatchlistEntry(symbol: 'XRPUSDT', price: 2.45),
-    'BNBUSDT': WatchlistEntry(symbol: 'BNBUSDT', price: 655.0),
-    'ADAUSDT': WatchlistEntry(symbol: 'ADAUSDT', price: 0.78),
-    'DOGEUSDT': WatchlistEntry(symbol: 'DOGEUSDT', price: 0.225),
-    'DOTUSDT': WatchlistEntry(symbol: 'DOTUSDT', price: 4.80),
-    'MATICUSDT': WatchlistEntry(symbol: 'MATICUSDT', price: 0.42),
-    'AVAXUSDT': WatchlistEntry(symbol: 'AVAXUSDT', price: 24.50),
-  };
-
-  String _selectedSymbol = 'RELIANCE';
+  // Watchlist loaded dynamically from .env
+  Map<String, WatchlistEntry> watchlist = {};
+  
+  String _selectedSymbol = '';
   List<Candle> candles = [];
 
   // State
   bool _engineRunning = false;
-  final String _tradingMode = 'PAPER';
-  final String _brokerName = 'angel_one';
-  final String _marketStatus = 'CLOSED';
-  final double _totalCapital = 100000;
-  final double _equityCapital = 70000;
-  final double _fnoCapital = 30000;
+  String _tradingMode = 'LOADING...';
+  String _brokerName = 'LOADING...';
+  String _marketStatus = 'CLOSED';
+  double _totalCapital = 0.0;
+  double _equityCapital = 0.0;
+  double _fnoCapital = 0.0;
   int _totalTrades = 0;
 
   // Chart data per symbol
@@ -138,7 +112,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _generateFlatInitialData();
+    _loadDashboardConfig();
+  }
+
+  void _loadDashboardConfig() {
+    try {
+      final file = File('../.env');
+      if (file.existsSync()) {
+        final lines = file.readAsLinesSync();
+        List<String> newWatchlist = [];
+        
+        for (var line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.isEmpty || trimmed.startsWith('#') || !trimmed.contains('=')) continue;
+          final idx = trimmed.indexOf('=');
+          final key = trimmed.substring(0, idx).trim();
+          final val = trimmed.substring(idx + 1).trim();
+
+          if (key == 'TRADING_MODE') {
+             _tradingMode = val.toUpperCase();
+          } else if (key == 'BROKER_NAME') {
+             _brokerName = val.toUpperCase();
+          } else if (key == 'TOTAL_CAPITAL') {
+             _totalCapital = double.tryParse(val) ?? _totalCapital;
+          } else if (key == 'EQUITY_CAPITAL_PERCENT') {
+             final pct = double.tryParse(val) ?? 70;
+             _equityCapital = _totalCapital * (pct / 100);
+          } else if (key == 'FNO_CAPITAL_PERCENT') {
+             final pct = double.tryParse(val) ?? 30;
+             _fnoCapital = _totalCapital * (pct / 100);
+          } else if (key == 'EQUITY_SYMBOLS' || key == 'FNO_SYMBOLS' || key == 'CRYPTO_SYMBOLS') {
+             if (val.isNotEmpty) {
+               newWatchlist.addAll(val.split(',').map((s) => s.trim()));
+             }
+          }
+        }
+        
+        // Rebuild watchlist
+        watchlist.clear();
+        for (var sym in newWatchlist) {
+          if (sym.isNotEmpty) {
+            watchlist[sym] = WatchlistEntry(symbol: sym, price: 1000.0);
+          }
+        }
+        
+        if (watchlist.isNotEmpty && _selectedSymbol.isEmpty) {
+          _selectedSymbol = watchlist.keys.first;
+        }
+
+        setState(() {});
+        _generateFlatInitialData();
+      }
+    } catch (e) {
+      debugPrint('Error loading .env for dashboard: $e');
+    }
   }
 
   // -- WebSocket Connection ----
@@ -334,33 +361,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _generateFlatInitialData() {
-    final basePrices = {
-      'RELIANCE': 2850.0,
-      'TCS': 3920.0,
-      'HDFCBANK': 1620.0,
-      'INFY': 1540.0,
-      'ICICIBANK': 1280.0,
-      'SBIN': 820.0,
-      'BHARTIARTL': 1680.0,
-      'ITC': 435.0,
-      'HINDUNILVR': 2380.0,
-      'KOTAKBANK': 1920.0,
-      'NIFTY': 24200.0,
-      'BANKNIFTY': 52100.0,
-      'FINNIFTY': 23800.0,
-      'BTCUSDT': 104500.0,
-      'ETHUSDT': 2550.0,
-      'SOLUSDT': 172.0,
-      'XRPUSDT': 2.45,
-      'BNBUSDT': 655.0,
-      'ADAUSDT': 0.78,
-      'DOGEUSDT': 0.225,
-      'DOTUSDT': 4.80,
-      'MATICUSDT': 0.42,
-      'AVAXUSDT': 24.50,
-    };
+    // Generate empty/flat candles so the chart component doesn't crash before WS data arrives
     for (var sym in watchlist.keys) {
-      _symbolCandles[sym] = _buildFlatCandles(basePrices[sym] ?? 1000.0);
+      if (!_symbolCandles.containsKey(sym)) {
+        _symbolCandles[sym] = _buildFlatCandles(1000.0);
+      }
     }
     candles = List.from(_symbolCandles[_selectedSymbol] ?? []);
   }
@@ -488,8 +493,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.settings, color: Colors.grey, size: 20),
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (ctx) => const SettingsScreen()));
+          onPressed: () async {
+            await Navigator.push(context, MaterialPageRoute(builder: (ctx) => const SettingsScreen()));
+            _loadDashboardConfig(); // Refresh dashboard header values after saving settings!
           },
         ),
       ],
@@ -992,7 +998,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _saveEnv() {
+  void _saveEnv() async {
     try {
       final file = File('../.env');
       List<String> newLines = [];
@@ -1009,14 +1015,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         newLines.add(line);
       }
       file.writeAsStringSync(newLines.join('\n'));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved successfully! Restart backend to apply.', style: TextStyle(color: Colors.white))),
-      );
-      Navigator.pop(context);
+      
+      // Request dynamic engine restart from the backend
+      try {
+        final client = HttpClient();
+        final request = await client.postUrl(Uri.parse('http://localhost:8000/api/v1/system/restart'));
+        final response = await request.close();
+        if (response.statusCode == 200 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Settings saved! Engine is rebooting dynamically 🚀', style: TextStyle(color: Colors.greenAccent))),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Settings saved locally. Engine is offline, start manually.', style: TextStyle(color: Colors.orangeAccent))),
+          );
+        }
+      }
+      
+      if (mounted) Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving: $e', style: const TextStyle(color: Colors.redAccent))),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e', style: const TextStyle(color: Colors.redAccent))),
+        );
+      }
     }
   }
 

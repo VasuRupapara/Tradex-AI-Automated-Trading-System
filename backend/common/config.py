@@ -9,8 +9,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import List, Optional
+from pathlib import Path
+import os
 
 from pydantic_settings import BaseSettings
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_PATH = ROOT_DIR / ".env"
 
 
 # ============================================
@@ -33,7 +38,7 @@ class DatabaseConfig(BaseSettings):
         )
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -47,7 +52,7 @@ class BrokerSelectionConfig(BaseSettings):
     TRADING_MODE: str = "paper"       # paper | live
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -63,7 +68,7 @@ class AngelOneConfig(BaseSettings):
     ANGEL_TOTP_SECRET: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -75,7 +80,7 @@ class ZerodhaConfig(BaseSettings):
     ZERODHA_USER_ID: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -87,7 +92,7 @@ class FyersConfig(BaseSettings):
     FYERS_REDIRECT_URL: str = "http://localhost:8000/fyers/callback"
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -99,7 +104,7 @@ class UpstoxConfig(BaseSettings):
     UPSTOX_REDIRECT_URI: str = "http://localhost:8000/upstox/callback"
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -109,7 +114,7 @@ class DhanConfig(BaseSettings):
     DHAN_ACCESS_TOKEN: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -120,7 +125,7 @@ class GrowwConfig(BaseSettings):
     GROWW_ACCESS_TOKEN: str = ""
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -158,7 +163,7 @@ class TradingConfig(BaseSettings):
         return [s.strip() for s in self.CRYPTO_SYMBOLS.split(",") if s.strip()]
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -176,7 +181,7 @@ class RiskConfig(BaseSettings):
     INTRADAY_SQUARE_OFF_TIME: str = "15:15"
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 
@@ -194,7 +199,7 @@ class AppConfig(BaseSettings):
     API_SECRET_KEY: str = "dev-secret-key-change-in-production"
 
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_PATH)
         extra = "ignore"
 
 

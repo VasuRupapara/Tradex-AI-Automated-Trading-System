@@ -15,6 +15,8 @@ Reference: Blueprint Section "Inter-Service Communication"
 from __future__ import annotations
 
 import asyncio
+import os
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Dict, List
@@ -165,6 +167,30 @@ async def prometheus_metrics():
         content=generate_latest(),
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
+
+
+@app.post("/api/v1/system/restart", tags=["System"])
+async def restart_system():
+    """
+    Restart the entire trading engine (Hot Reload).
+    Useful after saving configuration changes via the UI.
+    """
+    logger.warning("System restart requested via API. Rebooting engine...")
+    
+    # Broadcast to all websocket clients that we are restarting
+    await ws_manager.broadcast({
+        "type": "SYSTEM_MESSAGE", 
+        "data": "Rebooting Trading Engine with new settings..."
+    })
+    
+    def _restart():
+        # Exit the process. The outer batch file/process manager will restart it.
+        os._exit(0)
+        
+    # Schedule restart slightly in the future to allow the HTTP response to return to Flutter
+    asyncio.get_event_loop().call_later(0.5, _restart)
+    
+    return {"status": "success", "message": "Engine is restarting..."}
 
 
 # ============================================
